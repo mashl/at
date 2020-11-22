@@ -20,27 +20,35 @@ function [envelope, rmsdp, rmsbl, varargout] = ohmienvelope(ring,radindex,refpts
 % [ENVELOPE, RMSDP, RMSBL, M66, T, ORBIT] = OHMIENVELOPE(...)
 %   Returns in addition the 6x6 transfer matrices and the closed orbit
 %   from FINDM66
-
 NumElements = length(ring);
 if nargin<3, refpts=1; end
-
+Rad=char('RadPass');
+Wig=atgetcells(ring,'Bmax');
+Wigidx=find(Wig(:)==1);
+if ~isempty(Wigidx)
+    passlistW=atgetfieldvalues(ring(Wigidx),'PassMethod');
+    psmW=char(passlistW);
+    for i=1:size(psmW,1)
+        RPSW0=psmW(i,1:end-4);
+        RPSW=[RPSW0,Rad];
+        ring{Wigidx(i),1}.PassMethod=RPSW;
+    end
+end
 [mring, ms, orbit] = findm66(ring,1:NumElements+1);
 mt=squeeze(num2cell(ms,[1 2]));
 orb=num2cell(orbit,1)';
-
 zr={zeros(6,6)};
 B=zr(ones(NumElements,1));   % B{i} is the diffusion matrix of the i-th element
-
 % calculate Radiation-Diffusion matrix B for elements with radiation
 B(radindex)=cellfun(@findmpoleraddiffmatrix,...
     ring(radindex),orb(radindex),'UniformOutput',false);
-
+B(Wig)=cellfun(@FDW,...
+    ring(Wig),orb(Wig),'UniformOutput',false);
 % Calculate cumulative Radiation-Diffusion matrix for the ring
 BCUM = zeros(6,6);
 % Batbeg{i} is the cumulative diffusion matrix from
 % 0 to the beginning of the i-th element
 Batbeg=[zr;cellfun(@cumulb,ring,orb(1:end-1),B,'UniformOutput',false)];
-
 % ------------------------------------------------------------------------
 % Equation for the moment matrix R is
 %         R = MRING*R*MRING' + BCUM;
