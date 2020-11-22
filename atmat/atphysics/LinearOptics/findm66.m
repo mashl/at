@@ -76,11 +76,17 @@ end
 
 % Build a diagonal matrix of initial conditions
 D6 = [0.5*dt*eye(4),zeros(4,2);zeros(2,4),0.5*dl*eye(2)];
+
 % Add to the orbit_in. First 12 columns for derivative
 % 13-th column is for closed orbit
 RIN = R0(:,ones(1,13)) + [D6 -D6 zeros(6,1)];
-ROUT = linepass(LATTICE,RIN,refs);
-TMAT3 = reshape(ROUT,6,13,[]);
+for i=1:13
+   ROUT2 = linepass(LATTICE,RIN(:,i),1:length(LATTICE)+1); 
+   TMAT3(:,i,:)=ROUT2;
+end
+%ROUT = linepass(LATTICE,RIN,refs);
+%TMAT3 = reshape(ROUT,6,13,[]);
+
 M66 = [(TMAT3(:,1:4,end)-TMAT3(:,7:10,end))./dt,...
     (TMAT3(:,5:6,end)-TMAT3(:,11:12,end))./dl];
 
