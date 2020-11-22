@@ -9,8 +9,6 @@ function [ring,radelemIndex,cavitiesIndex,energy]=atradon(ring,varargin)
 %       2) 1st 'RFCavity' element
 %       3) field "E0" of the global variable "GLOBVAL"
 %
-%   The default is to turn cavities ON and set radiation in dipoles and wigglers.
-%
 %  INPUTS
 %  1. RING      initial AT structure
 %  2. CAVIPASS	pass method for cavities
@@ -32,31 +30,29 @@ function [ring,radelemIndex,cavitiesIndex,energy]=atradon(ring,varargin)
 %   'quadpass'      pass method for quadrupoles. Default ''
 %   'sextupass'     pass method for sextupoles. Default ''
 %   'octupass'      pass method for bending magnets. Default ''
-%   'wigglerpass'   pass method for wigglers. Default ''
 %
 %  OUPUTS
 %  1. RING2     Output ring
 %  2. RADINDEX  Indices of elements with radiation
 %  3. CAVINDEX  Indices of cavities
-%  4. ENERGY	Ring energy
 %
 %  EXAMPLES
 %
 %>> ringrad=atradon(ring);
-%   Turns cavities on and sets radiation in bending magnets and wigglers (default)
+%   Turns cavities on and sets radiation in bending magnets (default)
 %
 %>> ringrad=atradon(ring,'CavityPass','auto','auto');
-%   Turns cavities on and sets radiation in bending magnets, wigglers and quadrupoles
+%   Turns cavities on and sets radiation in bending magnets and quadrupoles
 %
 %>> ringrad=atradon(ring,'quadpass','auto');
-%   Turns cavities on and sets radiation in bending magnets, wigglers and quadrupoles
+%   Turns cavities on and sets radiation in bending magnets and quadrupoles
 %
 %  See also ATRADOFF, ATCAVITYON, ATCAVITYOFF
 
 [octupass,varargs]=getoption(varargin,'octupass','');
 [sextupass,varargs]=getoption(varargs,'sextupass','');
 [quadpass,varargs]=getoption(varargs,'quadpass','');
-[wigglerpass,varargs]=getoption(varargs,'wigglerpass','auto');
+%[wigglerpass,varargs]=getoption(varargs,'wigglerpass','auto');
 [bendpass,varargs]=getoption(varargs,'bendpass','auto');
 [cavipass,varargs]=getoption(varargs,'cavipass','CavityPass');
 [cavipass,bendpass,quadpass]=getargs(varargs,cavipass,bendpass,quadpass);
@@ -73,7 +69,7 @@ energy=atenergy(ring);
 
 [ring,octupoles]=changepass(ring,octupass,@(rg) selmpole(rg,4),'Octu');
 
-[ring,wigglers]=changepass(ring,wigglerpass,@(rg) atgetcells(rg,'Class','Wiggler'));
+%[ring,wigglers]=changepass(ring,wigglerpass,@selwiggler,'Wiggler');
 
 cavitiesIndex=atgetcells(ring,'PassMethod',@(elem,pass) endsWith(pass,'CavityPass'));
 radelemIndex=atgetcells(ring,'PassMethod',@(elem,pass) endsWith(pass,'RadPass'));
@@ -82,7 +78,7 @@ if any(cavities)
     atdisplay(1,['Cavities modified at position ' num2str(find(cavities)')]);
 end
 
-radnum=sum(dipoles|quadrupoles|sextupoles|octupoles|wigglers);
+radnum=sum(dipoles|quadrupoles|sextupoles|octupoles);
 if radnum > 0
     atdisplay(1,[num2str(radnum) ' elements switched to include radiation']);
 end
@@ -99,7 +95,7 @@ end
             end
             if any(mask)
                 ring(mask)=cellfun(@newelem,ring(mask),passlist(ok),'UniformOutput',false);
-            elseif nargin >= 4
+            else
                 warning(['AT:atradon:NO' code], ['no ' code ' modified']),
             end
         end
@@ -110,11 +106,8 @@ end
                 if strcmp(newpass,'auto')
                     newpass=strrep(elem.PassMethod,'Pass','RadPass');
                 end
-                % Check the existence of the new PassMethod
-                if ~isempty(which(newpass))
-                    elem.PassMethod=newpass;
-                    elem.Energy=energy;
-                end
+                elem.PassMethod=newpass;
+                elem.Energy=energy;
             end
         end
     end
